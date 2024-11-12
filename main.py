@@ -10,7 +10,7 @@ import json
 
 # Get the JSON string from the environment variable
 client_secrets_content = os.getenv("CLIENT_SECRETS_JSON")
-
+VIDEO_ID = os.getenv("VIDEO_ID")
 # Write the content to a client_secrets.json file if the environment variable is set
 if client_secrets_content:
     with open("client_secrets.json", "w") as f:
@@ -224,19 +224,10 @@ class YouTubeAPIBot:
                 time.sleep(5)
 
 if __name__ == "__main__":
-    print("YouTube Chat Bot - Minimal Permissions Setup:")
-    print("1. Configure OAuth consent screen with these scopes:")
-    print("   - https://www.googleapis.com/auth/youtube")
-    print("   - https://www.googleapis.com/auth/youtube.readonly")
-    print("2. Create OAuth 2.0 credentials")
-    print("3. Download and save as client_secrets.json\n")
+    print("YouTube Chat Bot - Minimal Permissions Setup")
+    print("Starting bot with minimal permissions...")
     
-    proceed = input("Ready to proceed? (y/n): ")
-    if proceed.lower() != 'y':
-        print("Please complete the setup steps and try again.")
-        exit()
-    
-    VIDEO_ID = input("Enter your YouTube livestream video ID: ")
+    VIDEO_ID = f"{VIDEO_ID}"
     
     bot = YouTubeAPIBot()
     bot.run(VIDEO_ID)
