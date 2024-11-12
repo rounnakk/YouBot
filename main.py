@@ -7,6 +7,18 @@ import os
 import time
 import json
 
+
+# Get the JSON string from the environment variable
+client_secrets_content = os.getenv("CLIENT_SECRETS_JSON")
+
+# Write the content to a client_secrets.json file if the environment variable is set
+if client_secrets_content:
+    with open("client_secrets.json", "w") as f:
+        f.write(client_secrets_content)
+else:
+    raise ValueError("CLIENT_SECRETS_JSON environment variable is not set.")
+
+
 class YouTubeAPIBot:
     def __init__(self):
         self.credentials = None
