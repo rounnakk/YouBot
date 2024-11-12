@@ -1,5 +1,7 @@
 from google_auth_oauthlib.flow import InstalledAppFlow
 from google.oauth2.credentials import Credentials
+from google.oauth2 import service_account
+from googleapiclient.discovery import build
 from google.auth.transport.requests import Request
 from googleapiclient.discovery import build
 import pickle
@@ -10,6 +12,7 @@ import json
 
 # Get the JSON string from the environment variable
 client_secrets_content = os.getenv("CLIENT_SECRETS_JSON")
+SERVICE_ACCOUNT_CONTENT = os.getenv("SERVICE_ACCOUNT")
 VIDEO_ID = os.getenv("VIDEO_ID")
 # Write the content to a client_secrets.json file if the environment variable is set
 if client_secrets_content:
@@ -17,6 +20,12 @@ if client_secrets_content:
         f.write(client_secrets_content)
 else:
     raise ValueError("CLIENT_SECRETS_JSON environment variable is not set.")
+
+if SERVICE_ACCOUNT_CONTENT:
+    with open("service_account_creds.json", "w") as f:
+        f.write(SERVICE_ACCOUNT_CONTENT)
+else:
+    raise ValueError("SERVICE_ACCOUNT environment variable is not set.")
 
 
 class YouTubeAPIBot:
@@ -32,56 +41,90 @@ class YouTubeAPIBot:
         ]
         
     def authenticate(self):
-        """Handle the OAuth2 flow with minimal scopes"""
+        """Authenticate using service account credentials for automation."""
         creds = None
-        
+
+        # Check if the credentials already exist (from service account or pre-generated token)
         if os.path.exists(self.token_path):
-            print("Loading saved credentials...")
             with open(self.token_path, 'rb') as token:
                 creds = pickle.load(token)
 
         if not creds or not creds.valid:
-            if creds and creds.expired and creds.refresh_token:
-                print("Refreshing access token...")
-                try:
-                    creds.refresh(Request())
-                except Exception as e:
-                    print(f"Error refreshing token: {e}")
-                    if os.path.exists(self.token_path):
-                        os.remove(self.token_path)
-                    return self.authenticate()
-            else:
-                print("Starting new OAuth2 flow...")
-                try:
-                    flow = InstalledAppFlow.from_client_secrets_file(
-                        'client_secrets.json',
-                        self.SCOPES,
-                        redirect_uri='http://localhost:8000'
-                    )
-                    
-                    print("\nAuthorization Required:")
-                    print("1. A browser window will open")
-                    print("2. Log in with your Google account")
-                    print("3. Accept the minimal permissions required:")
-                    print("   - View your YouTube account")
-                    print("   - Manage your YouTube account (for chat)")
-                    
-                    creds = flow.run_local_server(
-                        port=8000,
-                        prompt='consent',
-                        access_type='offline'
-                    )
-                except Exception as e:
-                    print(f"Error during authentication: {e}")
-                    return False
+            # Use Service Account credentials for authentication
+            try:
+                # Set the path to your service account JSON key file
+                # service_account_file = os.getenv("GOOGLE_APPLICATION_CREDENTIALS")  # You can set this as an environment variable
+                # if not service_account_file:
+                #     raise ValueError("The GOOGLE_APPLICATION_CREDENTIALS environment variable is not set.")
+                
+                # Load service account credentials
+                creds = service_account.Credentials.from_service_account_file(
+                    service_account_creds.json, scopes=self.SCOPES
+                )
+                print("Authenticated using service account credentials.")
+            except Exception as e:
+                print(f"Error during service account authentication: {e}")
+                return False
 
-            print("Saving credentials for future use...")
+            # Save credentials for future use
             with open(self.token_path, 'wb') as token:
                 pickle.dump(creds, token)
 
         self.credentials = creds
         self.youtube = build('youtube', 'v3', credentials=creds)
         return True
+
+
+        # """Handle the OAuth2 flow with minimal scopes"""
+        # creds = None
+        
+        # if os.path.exists(self.token_path):
+        #     print("Loading saved credentials...")
+        #     with open(self.token_path, 'rb') as token:
+        #         creds = pickle.load(token)
+
+        # if not creds or not creds.valid:
+        #     if creds and creds.expired and creds.refresh_token:
+        #         print("Refreshing access token...")
+        #         try:
+        #             creds.refresh(Request())
+        #         except Exception as e:
+        #             print(f"Error refreshing token: {e}")
+        #             if os.path.exists(self.token_path):
+        #                 os.remove(self.token_path)
+        #             return self.authenticate()
+        #     else:
+        #         print("Starting new OAuth2 flow...")
+        #         try:
+        #             flow = InstalledAppFlow.from_client_secrets_file(
+        #                 'client_secrets.json',
+        #                 self.SCOPES,
+        #                 redirect_uri='http://localhost:8000'
+        #             )
+                    
+        #             print("\nAuthorization Required:")
+        #             print("1. A browser window will open")
+        #             print("2. Log in with your Google account")
+        #             print("3. Accept the minimal permissions required:")
+        #             print("   - View your YouTube account")
+        #             print("   - Manage your YouTube account (for chat)")
+                    
+        #             creds = flow.run_local_server(
+        #                 port=8000,
+        #                 prompt='consent',
+        #                 access_type='offline'
+        #             )
+        #         except Exception as e:
+        #             print(f"Error during authentication: {e}")
+        #             return False
+
+        #     print("Saving credentials for future use...")
+        #     with open(self.token_path, 'wb') as token:
+        #         pickle.dump(creds, token)
+
+        # self.credentials = creds
+        # self.youtube = build('youtube', 'v3', credentials=creds)
+        # return True
 
     def get_live_chat_id(self, video_id):
         """Get live chat ID using minimal permissions"""
