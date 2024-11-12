@@ -44,7 +44,7 @@ class YouTubeAPIBot:
                     flow = InstalledAppFlow.from_client_secrets_file(
                         'client_secrets.json',
                         self.SCOPES,
-                        redirect_uri='http://localhost:8080'
+                        redirect_uri='http://localhost:8000'
                     )
                     
                     print("\nAuthorization Required:")
@@ -55,7 +55,7 @@ class YouTubeAPIBot:
                     print("   - Manage your YouTube account (for chat)")
                     
                     creds = flow.run_local_server(
-                        port=8080,
+                        port=8000,
                         prompt='consent',
                         access_type='offline'
                     )
